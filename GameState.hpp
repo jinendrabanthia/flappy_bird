@@ -3,6 +3,7 @@
 #include "Game.hpp"
 #include "Bird.hpp"
 #include "Pipe.hpp"
+#include <SFML/Audio.hpp>
 #include <memory>
 #include <vector>
 #include <random>
@@ -35,4 +36,7 @@ private:
     
     int m_score = 0;
     float m_timeAlive = 0.f;
+    
+    sf::SoundBuffer m_flapBuffer;
+    sf::Sound m_flapSound;
 };

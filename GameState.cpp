@@ -2,9 +2,11 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <random>
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
 
 GameState::GameState(Game& game) 
-    : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font) {
+    : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font), m_flapSound(m_flapBuffer) {
     std::random_device rd;
     m_rng.seed(rd());
 }
@@ -56,6 +58,36 @@ void GameState::init() {
         m_scoreText.setPosition({800.f - 250.f, 20.f}); // Roughly top right
     }
 
+    // Generate procedural flap sound
+    std::vector<std::int16_t> samples;
+    unsigned int sampleRate = 44100;
+    float duration = 0.1f;
+    for (int i = 0; i < sampleRate * duration; ++i) {
+        float t = (float)i / sampleRate;
+        
+        // Pitch sweeps up quickly from 300 Hz to 800 Hz
+        float currentFreq = 300.f + 5000.f * t; 
+        float phase = 2.f * 3.14159265f * currentFreq * t;
+        
+        // Complex waveform for a more pleasant "chime" or "chirp" sound
+        float wave = std::sin(phase) + 0.5f * std::sin(phase * 2.f) + 0.25f * std::sin(phase * 3.f);
+        wave /= 1.75f; // Normalize
+        
+        // Attack-decay envelope for a soft 'pop'
+        float envelope = 0.f;
+        if (t < 0.02f) { // 20ms attack
+            envelope = t / 0.02f;
+        } else { // 80ms decay
+            envelope = 1.0f - ((t - 0.02f) / 0.08f);
+        }
+        envelope = envelope * envelope; // Quadratic decay
+        
+        short sample = 15000 * wave * envelope;
+        samples.push_back(sample);
+    }
+    m_flapBuffer.loadFromSamples(samples.data(), samples.size(), 1, sampleRate, {sf::SoundChannel::Mono});
+    m_flapSound.setBuffer(m_flapBuffer);
+
     reset();
 }
 
@@ -80,6 +112,7 @@ void GameState::handleInput() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
         if (!spacePressed) {
             if (m_bird) m_bird->jump();
+            m_flapSound.play();
             spacePressed = true;
         }
     } else {

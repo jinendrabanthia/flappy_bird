@@ -41,4 +41,5 @@ private:
     bool m_started = false;
     float m_animationTimer = 0.f;
     int m_currentFrame = 0;
+    float m_currentScale = 1.5f;
 };

@@ -21,7 +21,7 @@ Bird::Bird(const sf::Texture& texture)
     m_sprite.setTextureRect(sf::IntRect({0, 0}, {16, 16}));
     // Set origin to center for proper rotation
     m_sprite.setOrigin(sf::Vector2f(8.f, 8.f));
-    m_sprite.setScale({1.5f, 1.5f});
+    m_sprite.setScale({m_currentScale, m_currentScale});
     m_sprite.setPosition(m_position);
 }
 
@@ -60,6 +60,10 @@ void Bird::update(sf::Time dt) {
         // Update position
         m_position += m_velocity * dt.asSeconds();
         
+        // Visual Haptics: Smoothly scale back to normal size
+        m_currentScale += (1.5f - m_currentScale) * 15.f * dt.asSeconds();
+        m_sprite.setScale({m_currentScale, m_currentScale});
+
         // Animation
         m_animationTimer += dt.asSeconds();
         if (m_animationTimer > 0.15f) {
@@ -79,8 +83,11 @@ void Bird::draw(sf::RenderTarget& target, float alpha) {
 
 void Bird::jump() {
     m_started = true;
-    // In anti-gravity, jump velocity is reversed
     m_velocity.y = m_isAntiGravity ? -m_jumpVelocity : m_jumpVelocity;
+    
+    // Visual haptic: squash and stretch pop!
+    m_currentScale = 2.0f; // Exaggerate the pop
+    m_sprite.setScale({m_currentScale, m_currentScale});
 }
 
 void Bird::toggleAntiGravity() {
