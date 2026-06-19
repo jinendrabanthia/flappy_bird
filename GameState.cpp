@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <iostream>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 
@@ -13,6 +14,7 @@ GameState::GameState(Game& game)
       m_titleShadowText(m_titleFont), m_titleText(m_titleFont), 
       m_subtitleShadowText(m_font), m_subtitleText(m_font), m_startPromptText(m_font),
       m_gameOverShadowText(m_titleFont), m_gameOverText(m_titleFont), m_crashSound(m_crashBuffer),
+      m_dropdownMainText(m_uiFont), m_logoSprite(m_logoTexture),
       m_bgSprite1(m_bgRenderTexture.getTexture()), m_bgSprite2(m_bgRenderTexture.getTexture()) {
     std::random_device rd;
     m_rng.seed(rd());
@@ -54,6 +56,21 @@ void GameState::init() {
 
     if (!m_birdTexture.loadFromImage(image)) {
         // Ignore for now
+    }
+
+    if (m_logoTexture.loadFromFile("logo.png")) {
+        std::cerr << "SUCCESS: Loaded logo.png! Size: " << m_logoTexture.getSize().x << "x" << m_logoTexture.getSize().y << "\n";
+        m_logoTexture.setSmooth(true);
+        m_logoSprite.setTexture(m_logoTexture, true);
+        m_logoSprite.setOrigin({m_logoTexture.getSize().x / 2.f, m_logoTexture.getSize().y / 2.f});
+        m_logoSprite.setPosition({400.f, 250.f}); 
+        float scale = 700.f / m_logoTexture.getSize().x;
+        if (scale < 1.f) m_logoSprite.setScale({scale, scale});
+        
+        sf::Image iconImage = m_logoTexture.copyToImage();
+        m_game.getWindow().setIcon(iconImage.getSize(), iconImage.getPixelsPtr());
+    } else {
+        std::cerr << "FAILED to load logo.png from: " << std::filesystem::current_path().string() << "\n";
     }
 
     if (m_font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
@@ -112,6 +129,39 @@ void GameState::init() {
         m_gameOverShadowText.setFillColor(sf::Color(0, 0, 0, 150));
         m_gameOverShadowText.setOutlineThickness(0);
         m_gameOverShadowText.setPosition({m_gameOverText.getPosition().x + 8.f, m_gameOverText.getPosition().y + 8.f});
+
+        m_uiFont.openFromFile("C:/Windows/Fonts/consola.ttf");
+
+        // Dropdown UI - Sleek Minimalist Style
+        m_dropdownMainBox.setSize({160.f, 35.f});
+        m_dropdownMainBox.setFillColor(sf::Color(0, 0, 0, 180)); // Sleek semi-transparent black
+        m_dropdownMainBox.setOutlineColor(sf::Color(255, 255, 255, 100)); // Subtle white border
+        m_dropdownMainBox.setOutlineThickness(1.f);
+        m_dropdownMainBox.setPosition({20.f, 20.f}); 
+
+        m_dropdownMainText.setFont(m_uiFont); // Use Consolas for terminal look
+        m_dropdownMainText.setCharacterSize(18);
+        m_dropdownMainText.setFillColor(sf::Color(240, 240, 240));
+        m_dropdownMainText.setOutlineThickness(0.f);
+        m_dropdownMainText.setPosition({30.f, 26.f});
+        m_dropdownMainText.setString("Start Level: 1  v");
+
+        for (int i = 1; i <= 8; ++i) {
+            sf::RectangleShape box({160.f, 30.f});
+            box.setFillColor(sf::Color(0, 0, 0, 150));
+            box.setOutlineColor(sf::Color(255, 255, 255, 50)); // Very faint outline
+            box.setOutlineThickness(1.f);
+            box.setPosition({20.f, 20.f + 35.f + (i - 1) * 30.f});
+            m_dropdownItemBoxes.push_back(box);
+
+            sf::Text text(m_uiFont);
+            text.setCharacterSize(16);
+            text.setFillColor(sf::Color(200, 200, 200));
+            text.setOutlineThickness(0.f);
+            text.setString("Level " + std::to_string(i));
+            text.setPosition({30.f, 20.f + 35.f + (i - 1) * 30.f + 5.f});
+            m_dropdownItemTexts.push_back(text);
+        }
     }
 
     // Generate procedural flap sound
@@ -214,8 +264,15 @@ void GameState::reset() {
     m_pipes.clear();
     m_pipeSpawnTimer = 0.f;
     m_score = 0;
+    m_currentLevel = 1;
     m_timeAlive = 0.f;
     m_isGameOver = false;
+    
+    m_boosters.clear();
+    m_boosterSpawnTimer = 0.f;
+    m_speedMultiplier = 1.0f;
+    m_speedBoostTimer = 0.f;
+    
     m_startPromptText.setString(">> Press SPACE to start! <<");
     m_startPromptText.setPosition({800.f / 2.f - m_startPromptText.getGlobalBounds().size.x / 2.f, 400.f});
     m_scoreText.setString("High: " + std::to_string(m_highScore) + " | Score: 0 | Time: 0s");
@@ -223,18 +280,97 @@ void GameState::reset() {
 }
 
 void GameState::spawnPipe() {
-    std::uniform_real_distribution<float> dist(200.f, 400.f);
-    float gapY = dist(m_rng);
-    m_pipes.emplace_back(800.f, gapY, 150.f); // 800 is window width
+    float gapY = 150.f + (m_rng() % 300); // 150 to 450
+    float gapSize = 150.f;
+
+    Pipe::Type type = Pipe::Type::Normal;
+
+    if (m_currentLevel >= 2) {
+        int r = m_rng() % 100;
+        if (m_currentLevel >= 6) {
+            if (r < 20) type = Pipe::Type::Breakable;
+            else if (r < 40) type = Pipe::Type::Crushing;
+            else if (r < 60) type = Pipe::Type::Diagonal;
+            else if (r < 80) type = Pipe::Type::Moving;
+        } else if (m_currentLevel >= 5) {
+            if (r < 30) type = Pipe::Type::Diagonal;
+            else if (r < 60) type = Pipe::Type::Crushing;
+            else if (r < 80) type = Pipe::Type::Moving;
+        } else if (m_currentLevel >= 4) {
+            if (r < 40) type = Pipe::Type::Crushing;
+            else if (r < 70) type = Pipe::Type::Moving;
+        } else if (m_currentLevel >= 2) {
+            if (r < 50) type = Pipe::Type::Moving;
+        }
+    }
+
+    m_pipes.emplace_back(800.f, gapY, gapSize, type);
 }
 
 void GameState::handleInput() {
+    bool isSpace = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space);
+    if (m_bird) m_bird->setJumpHeld(isSpace);
+
+    // Mouse Input for Dropdown
+    sf::Vector2i mousePos = sf::Mouse::getPosition(m_game.getWindow());
+    static bool mousePressed = false;
+    bool isMouseDown = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
+    
+    if (isMouseDown && !mousePressed) {
+        mousePressed = true;
+        if (!m_bird->hasStarted() || m_isGameOver) {
+            if (m_dropdownMainBox.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+                m_isDropdownOpen = !m_isDropdownOpen;
+            } else if (m_isDropdownOpen) {
+                bool clickedItem = false;
+                for (size_t i = 0; i < m_dropdownItemBoxes.size(); ++i) {
+                    if (m_dropdownItemBoxes[i].getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+                        m_selectedStartLevel = i + 1;
+                        m_dropdownMainText.setString("Start Level: " + std::to_string(m_selectedStartLevel) + "  v");
+                        m_currentLevel = m_selectedStartLevel + (m_score / 10);
+                        m_isDropdownOpen = false;
+                        clickedItem = true;
+                        break;
+                    }
+                }
+                if (!clickedItem) m_isDropdownOpen = false;
+            }
+        }
+    } else if (!isMouseDown) {
+        mousePressed = false;
+    }
+    
+    // Hover effects
+    if (!m_bird->hasStarted() || m_isGameOver) {
+        if (m_dropdownMainBox.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+            m_dropdownMainBox.setFillColor(sf::Color(40, 40, 40, 200)); // Hover sleek
+        } else {
+            m_dropdownMainBox.setFillColor(sf::Color(0, 0, 0, 180));
+        }
+        
+        if (m_isDropdownOpen) {
+            for (size_t i = 0; i < m_dropdownItemBoxes.size(); ++i) {
+                if (m_dropdownItemBoxes[i].getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+                    m_dropdownItemBoxes[i].setFillColor(sf::Color(60, 60, 60, 220)); // Highlight item
+                    m_dropdownItemTexts[i].setFillColor(sf::Color::White);
+                } else {
+                    m_dropdownItemBoxes[i].setFillColor(sf::Color(0, 0, 0, 150));
+                    m_dropdownItemTexts[i].setFillColor(sf::Color(200, 200, 200));
+                }
+            }
+        }
+    }
+
     static bool spacePressed = false;
     
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
+    if (isSpace) {
         if (!spacePressed) {
-            if (m_isGameOver) {
+            if (m_isDropdownOpen) {
+                m_isDropdownOpen = false; // Close dropdown instead of starting if open
+            } else if (m_isGameOver) {
                 reset();
+                // Ensure level respects dropdown on reset
+                m_currentLevel = m_selectedStartLevel;
             } else if (m_bird) {
                 m_bird->jump();
                 m_flapSound.play();
@@ -247,12 +383,27 @@ void GameState::handleInput() {
 
     static bool shiftPressed = false;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) {
-        if (!shiftPressed) {
-            if (m_bird) m_bird->toggleAntiGravity();
-            shiftPressed = true;
+        if (!shiftPressed && m_bird && m_currentLevel >= 6) {
+            m_bird->dash();
         }
+        shiftPressed = true;
     } else {
         shiftPressed = false;
+    }
+
+    // Manual Level Changing (Keys 1-9)
+    for (int i = 0; i < 9; ++i) {
+        static bool numPressed[9] = {false};
+        if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(static_cast<int>(sf::Keyboard::Key::Num1) + i))) {
+            if (!numPressed[i]) {
+                m_selectedStartLevel = i + 1;
+                m_currentLevel = m_selectedStartLevel + (m_score / 10);
+                m_dropdownMainText.setString("Start Level: " + std::to_string(m_selectedStartLevel) + "  v");
+                numPressed[i] = true;
+            }
+        } else {
+            numPressed[i] = false;
+        }
     }
 }
 
@@ -262,19 +413,79 @@ void GameState::update(sf::Time dt) {
         
         if (m_bird->hasStarted() && !m_isGameOver) {
             m_timeAlive += dt.asSeconds();
-            m_scoreText.setString("High: " + std::to_string(m_highScore) + " | Score: " + std::to_string(m_score) + " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
+
+            // Level Progression
+            int newLevel = m_selectedStartLevel + (m_score / 10);
+            if (newLevel != m_currentLevel) {
+                m_currentLevel = newLevel;
+                if (m_currentLevel >= 3) {
+                    m_bird->setScreenWrap(true);
+                }
+            }
+
+            // Environment: Underwater
+            if (m_currentLevel == 4 || m_currentLevel == 7) {
+                m_bgSprite1.setColor(sf::Color(100, 150, 255));
+                m_bgSprite2.setColor(sf::Color(100, 150, 255));
+                m_bird->setUnderwater(true);
+            } else {
+                m_bgSprite1.setColor(sf::Color::White);
+                m_bgSprite2.setColor(sf::Color::White);
+                m_bird->setUnderwater(false);
+            }
+
+            // Environment: Wind
+            if (m_currentLevel == 5 || m_currentLevel == 8) {
+                m_bird->applyWind(-50.f * dt.asSeconds());
+            }
+
+            // Environment: Speed Boosters
+            if (m_currentLevel >= 6) {
+                m_boosterSpawnTimer += dt.asSeconds();
+                if (m_boosterSpawnTimer > 4.f) {
+                    m_boosterSpawnTimer = 0.f;
+                    SpeedBooster b;
+                    b.shape.setRadius(15.f);
+                    b.shape.setFillColor(sf::Color::Transparent);
+                    b.shape.setOutlineColor(sf::Color::Cyan);
+                    b.shape.setOutlineThickness(4.f);
+                    b.shape.setOrigin({15.f, 15.f});
+                    b.shape.setPosition({850.f, 100.f + (m_rng() % 400)});
+                    m_boosters.push_back(b);
+                }
+            }
+
+            sf::FloatRect birdBounds = m_bird->getGlobalBounds();
+
+            // Update Boosters
+            for (auto& b : m_boosters) {
+                b.shape.move({-200.f * m_speedMultiplier * dt.asSeconds(), 0.f});
+                if (b.active && b.shape.getGlobalBounds().findIntersection(birdBounds)) {
+                    b.active = false;
+                    m_speedMultiplier = 1.5f;
+                    m_speedBoostTimer = 3.f;
+                }
+            }
+            m_boosters.erase(std::remove_if(m_boosters.begin(), m_boosters.end(), 
+                [](const SpeedBooster& b) { return b.shape.getPosition().x < -50.f || !b.active; }), m_boosters.end());
+
+            if (m_speedBoostTimer > 0.f) {
+                m_speedBoostTimer -= dt.asSeconds();
+                if (m_speedBoostTimer <= 0.f) m_speedMultiplier = 1.0f;
+            }
+
+            m_scoreText.setString("Level " + std::to_string(m_currentLevel) + " | High: " + std::to_string(m_highScore) + " | Score: " + std::to_string(m_score) + " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
             m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
 
             // Update background scroll
-            m_bgScrollX -= 30.f * dt.asSeconds(); // Slow parallax speed
-            if (m_bgScrollX <= -800.f) {
-                m_bgScrollX += 800.f;
-            }
+            m_bgScrollX -= 30.f * m_speedMultiplier * dt.asSeconds();
+            if (m_bgScrollX <= -800.f) m_bgScrollX += 800.f;
+            
             m_bgSprite1.setPosition({m_bgScrollX, 0.f});
             m_bgSprite2.setPosition({m_bgScrollX + 800.f, 0.f});
 
             // Update pipes
-            m_pipeSpawnTimer += dt.asSeconds();
+            m_pipeSpawnTimer += dt.asSeconds() * m_speedMultiplier;
             if (m_pipeSpawnTimer >= m_pipeSpawnInterval) {
                 spawnPipe();
                 m_pipeSpawnTimer = 0.f;
@@ -290,6 +501,10 @@ void GameState::update(sf::Time dt) {
             float floatOffset = std::sin(m_menuTimer * 3.f) * 15.f;
             m_titleText.setPosition({800.f / 2.f - m_titleText.getGlobalBounds().size.x / 2.f, 100.f + floatOffset});
             m_titleShadowText.setPosition({m_titleText.getPosition().x + 8.f, m_titleText.getPosition().y + 8.f});
+            
+            if (m_logoTexture.getSize().x > 0) {
+                m_logoSprite.setPosition({400.f, 250.f + floatOffset});
+            }
         }
 
         if (!m_isGameOver) {
@@ -297,17 +512,25 @@ void GameState::update(sf::Time dt) {
             sf::FloatRect birdBounds = m_bird->getGlobalBounds();
             bool collision = false;
             
-            // Floor and ceiling
-            if (birdBounds.position.y < 0.f || birdBounds.position.y + birdBounds.size.y > 600.f) {
-                collision = true;
+            // Floor and ceiling (disabled if level >= 3 for screen wrap)
+            if (m_currentLevel < 3 && !m_bird->isDashing()) {
+                if (birdBounds.position.y < 0.f || birdBounds.position.y + birdBounds.size.y > 600.f) {
+                    collision = true;
+                }
             }
 
             for (auto& pipe : m_pipes) {
-                pipe.update(dt);
+                pipe.update(dt * m_speedMultiplier);
                 
                 if (birdBounds.findIntersection(pipe.getTopBounds()) || 
                     birdBounds.findIntersection(pipe.getBottomBounds())) {
-                    collision = true;
+                    if (m_bird->isDashing() && pipe.getType() == Pipe::Type::Breakable) {
+                        pipe.breakPipe();
+                        m_score += 2; // Bonus points
+                        m_crashSound.play(); // Play sound for breaking wood
+                    } else if (!m_bird->isDashing()) {
+                        collision = true;
+                    }
                 }
                 
                 if (!pipe.isPassed() && birdBounds.position.x > pipe.getX() + 80.f) {
@@ -342,6 +565,10 @@ void GameState::draw(sf::RenderTarget& target, float alpha) {
     for (auto& pipe : m_pipes) {
         pipe.draw(target, alpha);
     }
+    
+    for (auto& b : m_boosters) {
+        if (b.active) target.draw(b.shape);
+    }
 
     if (m_bird) {
         m_bird->draw(target, alpha);
@@ -349,17 +576,31 @@ void GameState::draw(sf::RenderTarget& target, float alpha) {
     
     target.draw(m_scoreText);
     
-    if (m_bird && !m_bird->hasStarted() && !m_isGameOver) {
-        target.draw(m_titleShadowText);
-        target.draw(m_titleText);
-        target.draw(m_subtitleShadowText);
-        target.draw(m_subtitleText);
-        target.draw(m_startPromptText);
-    }
-    
-    if (m_isGameOver) {
+    if (!m_bird->hasStarted()) {
+        if (m_logoTexture.getSize().x > 0) {
+            target.draw(m_logoSprite);
+        } else {
+            target.draw(m_titleShadowText);
+            target.draw(m_titleText);
+            target.draw(m_subtitleShadowText);
+            target.draw(m_subtitleText);
+            target.draw(m_startPromptText);
+        }
+    } else if (m_isGameOver) {
         target.draw(m_gameOverShadowText);
         target.draw(m_gameOverText);
         target.draw(m_startPromptText);
+    }
+    
+    // Draw Dropdown UI (drawn over everything else so it's clickable)
+    if (!m_bird->hasStarted() || m_isGameOver) {
+        target.draw(m_dropdownMainBox);
+        target.draw(m_dropdownMainText);
+        if (m_isDropdownOpen) {
+            for (size_t i = 0; i < m_dropdownItemBoxes.size(); ++i) {
+                target.draw(m_dropdownItemBoxes[i]);
+                target.draw(m_dropdownItemTexts[i]);
+            }
+        }
     }
 }

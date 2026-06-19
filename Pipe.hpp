@@ -3,7 +3,10 @@
 
 class Pipe {
 public:
-    Pipe(float x, float gapY, float gapSize);
+    enum class Type {
+        Normal, Moving, Crushing, Diagonal, Breakable
+    };
+    Pipe(float x, float gapY, float gapSize, Type type = Type::Normal);
 
     void update(sf::Time dt);
     void draw(sf::RenderTarget& target, float alpha);
@@ -18,14 +21,26 @@ public:
     bool isPassed() const { return m_passed; }
     void setPassed(bool passed) { m_passed = passed; }
 
+    Type getType() const { return m_type; }
+    bool isBroken() const { return m_broken; }
+    void breakPipe() { m_broken = true; }
+
 private:
+    Type m_type;
+    bool m_broken = false;
     bool m_passed = false;
     sf::Vector2f m_position;
     sf::Vector2f m_previousPosition;
     float m_gapY;
     float m_gapSize;
-    float m_width = 80.f;
+    float m_width = 50.f;
     float m_speed = 200.f; // Move left at 200 pixels/sec
+    
+    // For advanced variants
+    float m_timeAlive = 0.f;
+    float m_baseGapY;
+    float m_topOffsetX = 0.f;
+    float m_bottomOffsetX = 0.f;
     
     sf::RectangleShape m_topShape;
     sf::RectangleShape m_bottomShape;

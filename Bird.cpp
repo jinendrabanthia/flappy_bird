@@ -47,18 +47,44 @@ void Bird::update(sf::Time dt) {
     }
 
     if (m_started) {
-        // Apply gravity
-        m_velocity.y += m_gravity * dt.asSeconds();
+        if (m_dashCooldown > 0.f) m_dashCooldown -= dt.asSeconds();
 
-        // Terminal velocity limit
-        if (m_velocity.y > m_terminalVelocity) {
-            m_velocity.y = m_terminalVelocity;
-        } else if (m_velocity.y < -m_terminalVelocity) {
-            m_velocity.y = -m_terminalVelocity;
+        if (m_isDashing) {
+            m_dashTimer -= dt.asSeconds();
+            m_velocity.y = 0.f; // Float straight during dash
+            // Visual Haptics for dash
+            m_currentScale = 1.0f + (m_dashTimer / m_dashDuration);
+            if (m_dashTimer <= 0.f) m_isDashing = false;
+        } else {
+            // Apply gravity
+            float currentGravity = m_gravity;
+            if (m_isJumpHeld && m_jumpHoldTimer > 0.f) {
+                m_jumpHoldTimer -= dt.asSeconds();
+                currentGravity *= 0.2f; // Weak gravity while holding space
+            }
+            m_velocity.y += currentGravity * dt.asSeconds();
+
+            // Terminal velocity limit
+            if (m_velocity.y > m_terminalVelocity) {
+                m_velocity.y = m_terminalVelocity;
+            } else if (m_velocity.y < -m_terminalVelocity) {
+                m_velocity.y = -m_terminalVelocity;
+            }
         }
 
         // Update position
         m_position += m_velocity * dt.asSeconds();
+        
+        // Screen Wrap Portal
+        if (m_screenWrapEnabled) {
+            if (m_position.y < -20.f) {
+                m_position.y = 620.f;
+                m_previousPosition.y = 620.f; // Avoid interpolation artifact
+            } else if (m_position.y > 620.f) {
+                m_position.y = -20.f;
+                m_previousPosition.y = -20.f;
+            }
+        }
         
         // Visual Haptics: Smoothly scale back to normal size
         m_currentScale += (1.5f - m_currentScale) * 15.f * dt.asSeconds();
@@ -84,10 +110,19 @@ void Bird::draw(sf::RenderTarget& target, float alpha) {
 void Bird::jump() {
     m_started = true;
     m_velocity.y = m_isAntiGravity ? -m_jumpVelocity : m_jumpVelocity;
+    m_jumpHoldTimer = m_maxJumpHoldTime; // Reset jump hold limit
     
     // Visual haptic: squash and stretch pop!
     m_currentScale = 2.0f; // Exaggerate the pop
     m_sprite.setScale({m_currentScale, m_currentScale});
+}
+
+void Bird::dash() {
+    if (m_started && m_dashCooldown <= 0.f) {
+        m_isDashing = true;
+        m_dashTimer = m_dashDuration;
+        m_dashCooldown = 2.0f;
+    }
 }
 
 void Bird::toggleAntiGravity() {
@@ -97,10 +132,23 @@ void Bird::toggleAntiGravity() {
     
     m_startGravity = m_gravity;
     m_targetGravity = m_isAntiGravity ? -1500.f : 1500.f;
+    if (m_isUnderwater) m_targetGravity *= 0.5f;
     
     m_startRotation = m_sprite.getRotation().asDegrees();
     m_targetRotation = m_isAntiGravity ? 180.f : 0.f;
     
-    // Normalize start rotation to prevent spinning multiple times
     if (m_startRotation > 180.f) m_startRotation -= 360.f;
+}
+
+void Bird::setUnderwater(bool enabled) {
+    if (m_isUnderwater == enabled) return;
+    m_isUnderwater = enabled;
+    m_jumpVelocity = m_isUnderwater ? -300.f : -450.f;
+    m_gravity = m_isAntiGravity ? (m_isUnderwater ? -750.f : -1500.f) : (m_isUnderwater ? 750.f : 1500.f);
+}
+
+void Bird::applyWind(float dx) {
+    m_position.x += dx;
+    if (m_position.x < 30.f) m_position.x = 30.f;
+    if (m_position.x > 770.f) m_position.x = 770.f;
 }

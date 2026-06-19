@@ -28,5 +28,7 @@ Designed by Jinendra Banthia.
 4. Run the executable found in the `build` directory!
 
 ## Controls
-- **SPACE**: Start the game / Jump.
+- **SPACE**: Flap! (Hold for a slightly higher jump)
+- **SHIFT**: Dash! (Unlocks at Level 6. Temporary invincibility and shatters wooden pipes!)
+- **Numbers 1-9**: Manually jump to a specific Level (Instantly changes your score)..
 - **F**: Toggle Anti-Gravity Mode (bonus feature!).

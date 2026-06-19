@@ -9,6 +9,13 @@
 #include <vector>
 #include <random>
 
+class Game;
+
+struct SpeedBooster {
+    sf::CircleShape shape;
+    bool active = true;
+};
+
 class GameState : public State {
 public:
     GameState(Game& game);
@@ -36,6 +43,9 @@ private:
     sf::Font m_titleFont;
     sf::Text m_scoreText;
     
+    sf::Texture m_logoTexture;
+    sf::Sprite m_logoSprite;
+
     sf::Text m_titleShadowText;
     sf::Text m_titleText;
     sf::Text m_subtitleShadowText;
@@ -54,8 +64,24 @@ private:
     
     int m_score = 0;
     int m_highScore = 0;
+    int m_currentLevel = 1;
     float m_timeAlive = 0.f;
     bool m_isGameOver = false;
+
+    // Advanced Mechanics State
+    std::vector<SpeedBooster> m_boosters;
+    float m_boosterSpawnTimer = 0.f;
+    float m_speedMultiplier = 1.0f;
+    float m_speedBoostTimer = 0.f;
+    
+    // UI Elements
+    sf::Font m_uiFont;
+    bool m_isDropdownOpen = false;
+    int m_selectedStartLevel = 1;
+    sf::RectangleShape m_dropdownMainBox;
+    sf::Text m_dropdownMainText;
+    std::vector<sf::RectangleShape> m_dropdownItemBoxes;
+    std::vector<sf::Text> m_dropdownItemTexts;
     
     sf::SoundBuffer m_flapBuffer;
     sf::Sound m_flapSound;
