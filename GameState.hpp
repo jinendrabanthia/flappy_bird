@@ -32,7 +32,15 @@ private:
     std::mt19937 m_rng;
 
     sf::Font m_font;
+    sf::Font m_titleFont;
     sf::Text m_scoreText;
+    
+    sf::Text m_titleShadowText;
+    sf::Text m_titleText;
+    sf::Text m_subtitleShadowText;
+    sf::Text m_subtitleText;
+    sf::Text m_startPromptText;
+    float m_menuTimer = 0.f;
     
     int m_score = 0;
     int m_highScore = 0;

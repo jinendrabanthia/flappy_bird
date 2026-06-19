@@ -7,7 +7,9 @@
 #include <fstream>
 
 GameState::GameState(Game& game) 
-    : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font), m_flapSound(m_flapBuffer) {
+    : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font), m_flapSound(m_flapBuffer),
+      m_titleShadowText(m_titleFont), m_titleText(m_titleFont), 
+      m_subtitleShadowText(m_font), m_subtitleText(m_font), m_startPromptText(m_font) {
     std::random_device rd;
     m_rng.seed(rd());
 }
@@ -57,6 +59,42 @@ void GameState::init() {
         m_scoreText.setOutlineColor(sf::Color::Black);
         m_scoreText.setOutlineThickness(2.f);
         m_scoreText.setPosition({800.f - 250.f, 20.f}); // Roughly top right
+        
+        m_titleFont.openFromFile("C:/Windows/Fonts/impact.ttf");
+
+        m_titleText.setFont(m_titleFont);
+        m_titleText.setString("FLAPPY BIRD");
+        m_titleText.setCharacterSize(100);
+        m_titleText.setFillColor(sf::Color(255, 215, 0)); // Gold
+        m_titleText.setOutlineColor(sf::Color(200, 50, 0)); // Dark Orange
+        m_titleText.setOutlineThickness(6.f);
+        m_titleText.setPosition({800.f / 2.f - m_titleText.getGlobalBounds().size.x / 2.f, 100.f});
+
+        m_titleShadowText = m_titleText;
+        m_titleShadowText.setFillColor(sf::Color(0, 0, 0, 150));
+        m_titleShadowText.setOutlineThickness(0);
+        m_titleShadowText.setPosition({m_titleText.getPosition().x + 8.f, m_titleText.getPosition().y + 8.f});
+
+        m_subtitleText.setFont(m_font);
+        m_subtitleText.setString("Designed by Jinendra Banthia");
+        m_subtitleText.setCharacterSize(28);
+        m_subtitleText.setFillColor(sf::Color(50, 255, 100)); // Neon Green
+        m_subtitleText.setOutlineColor(sf::Color(0, 100, 0)); // Dark Green
+        m_subtitleText.setOutlineThickness(3.f);
+        m_subtitleText.setPosition({800.f / 2.f - m_subtitleText.getGlobalBounds().size.x / 2.f, 230.f});
+
+        m_subtitleShadowText = m_subtitleText;
+        m_subtitleShadowText.setFillColor(sf::Color(0, 0, 0, 150));
+        m_subtitleShadowText.setOutlineThickness(0);
+        m_subtitleShadowText.setPosition({m_subtitleText.getPosition().x + 4.f, m_subtitleText.getPosition().y + 4.f});
+
+        m_startPromptText.setFont(m_font);
+        m_startPromptText.setString(">> Press SPACE to start! <<");
+        m_startPromptText.setCharacterSize(35);
+        m_startPromptText.setFillColor(sf::Color::White);
+        m_startPromptText.setOutlineColor(sf::Color(200, 0, 0)); // Red Outline
+        m_startPromptText.setOutlineThickness(4.f);
+        m_startPromptText.setPosition({800.f / 2.f - m_startPromptText.getGlobalBounds().size.x / 2.f, 400.f});
     }
 
     // Generate procedural flap sound
@@ -161,6 +199,17 @@ void GameState::update(sf::Time dt) {
                 spawnPipe();
                 m_pipeSpawnTimer = 0.f;
             }
+        } else {
+            // Blinking effect for start text
+            m_menuTimer += dt.asSeconds();
+            float alpha = (std::sin(m_menuTimer * 5.f) + 1.f) / 2.f * 255.f;
+            m_startPromptText.setFillColor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(alpha)));
+            m_startPromptText.setOutlineColor(sf::Color(200, 0, 0, static_cast<std::uint8_t>(alpha)));
+
+            // Bouncing / Floating animation for the title
+            float floatOffset = std::sin(m_menuTimer * 3.f) * 15.f;
+            m_titleText.setPosition({800.f / 2.f - m_titleText.getGlobalBounds().size.x / 2.f, 100.f + floatOffset});
+            m_titleShadowText.setPosition({m_titleText.getPosition().x + 8.f, m_titleText.getPosition().y + 8.f});
         }
 
         for (auto& pipe : m_pipes) {
@@ -212,4 +261,12 @@ void GameState::draw(sf::RenderTarget& target, float alpha) {
     }
     
     target.draw(m_scoreText);
+    
+    if (m_bird && !m_bird->hasStarted()) {
+        target.draw(m_titleShadowText);
+        target.draw(m_titleText);
+        target.draw(m_subtitleShadowText);
+        target.draw(m_subtitleText);
+        target.draw(m_startPromptText);
+    }
 }
