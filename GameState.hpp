@@ -4,6 +4,7 @@
 #include "Bird.hpp"
 #include "Pipe.hpp"
 #include <SFML/Audio.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
 #include <memory>
 #include <vector>
 #include <random>
@@ -41,6 +42,11 @@ private:
     sf::Text m_subtitleText;
     sf::Text m_startPromptText;
     float m_menuTimer = 0.f;
+    
+    sf::RenderTexture m_bgRenderTexture;
+    sf::Sprite m_bgSprite1;
+    sf::Sprite m_bgSprite2;
+    float m_bgScrollX = 0.f;
     
     int m_score = 0;
     int m_highScore = 0;

@@ -5,11 +5,14 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 
 GameState::GameState(Game& game) 
     : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font), m_flapSound(m_flapBuffer),
       m_titleShadowText(m_titleFont), m_titleText(m_titleFont), 
-      m_subtitleShadowText(m_font), m_subtitleText(m_font), m_startPromptText(m_font) {
+      m_subtitleShadowText(m_font), m_subtitleText(m_font), m_startPromptText(m_font),
+      m_bgSprite1(m_bgRenderTexture.getTexture()), m_bgSprite2(m_bgRenderTexture.getTexture()) {
     std::random_device rd;
     m_rng.seed(rd());
 }
@@ -133,6 +136,50 @@ void GameState::init() {
         inFile.close();
     }
 
+    if (m_bgRenderTexture.resize({800u, 600u})) {
+        m_bgRenderTexture.clear(sf::Color(135, 206, 235)); // Sky Blue
+
+        auto drawCloud = [&](float x, float y, float scale) {
+            sf::CircleShape c(30.f * scale);
+            c.setFillColor(sf::Color::White);
+            c.setPosition({x, y});
+            m_bgRenderTexture.draw(c);
+            
+            c.setRadius(40.f * scale);
+            c.setPosition({x + 25.f * scale, y - 20.f * scale});
+            m_bgRenderTexture.draw(c);
+            
+            c.setRadius(35.f * scale);
+            c.setPosition({x + 65.f * scale, y - 10.f * scale});
+            m_bgRenderTexture.draw(c);
+            
+            c.setRadius(25.f * scale);
+            c.setPosition({x + 95.f * scale, y + 10.f * scale});
+            m_bgRenderTexture.draw(c);
+        };
+
+        drawCloud(100.f, 100.f, 1.2f);
+        drawCloud(450.f, 50.f, 1.5f);
+        drawCloud(700.f, 180.f, 0.8f);
+        drawCloud(250.f, 250.f, 0.6f);
+        
+        sf::RectangleShape ground({800.f, 100.f});
+        ground.setPosition({0.f, 500.f});
+        ground.setFillColor(sf::Color(34, 139, 34)); // Forest Green
+        m_bgRenderTexture.draw(ground);
+        
+        sf::RectangleShape groundTrim({800.f, 10.f});
+        groundTrim.setPosition({0.f, 500.f});
+        groundTrim.setFillColor(sf::Color(124, 252, 0)); // Lawn Green
+        m_bgRenderTexture.draw(groundTrim);
+        
+        m_bgRenderTexture.display();
+        
+        m_bgSprite1.setTexture(m_bgRenderTexture.getTexture(), true);
+        m_bgSprite2.setTexture(m_bgRenderTexture.getTexture(), true);
+        m_bgSprite2.setPosition({800.f, 0.f});
+    }
+
     reset();
 }
 
@@ -193,6 +240,14 @@ void GameState::update(sf::Time dt) {
             m_scoreText.setString("High: " + std::to_string(m_highScore) + " | Score: " + std::to_string(m_score) + " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
             m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
 
+            // Update background scroll
+            m_bgScrollX -= 30.f * dt.asSeconds(); // Slow parallax speed
+            if (m_bgScrollX <= -800.f) {
+                m_bgScrollX += 800.f;
+            }
+            m_bgSprite1.setPosition({m_bgScrollX, 0.f});
+            m_bgSprite2.setPosition({m_bgScrollX + 800.f, 0.f});
+
             // Update pipes
             m_pipeSpawnTimer += dt.asSeconds();
             if (m_pipeSpawnTimer >= m_pipeSpawnInterval) {
@@ -252,6 +307,9 @@ void GameState::update(sf::Time dt) {
 }
 
 void GameState::draw(sf::RenderTarget& target, float alpha) {
+    target.draw(m_bgSprite1);
+    target.draw(m_bgSprite2);
+    
     for (auto& pipe : m_pipes) {
         pipe.draw(target, alpha);
     }
