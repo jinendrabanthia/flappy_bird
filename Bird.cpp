@@ -43,18 +43,20 @@ void Bird::update(sf::Time dt) {
         }
     }
 
-    // Apply gravity
-    m_velocity.y += m_gravity * dt.asSeconds();
+    if (m_started) {
+        // Apply gravity
+        m_velocity.y += m_gravity * dt.asSeconds();
 
-    // Terminal velocity limit
-    if (m_velocity.y > m_terminalVelocity) {
-        m_velocity.y = m_terminalVelocity;
-    } else if (m_velocity.y < -m_terminalVelocity) {
-        m_velocity.y = -m_terminalVelocity;
+        // Terminal velocity limit
+        if (m_velocity.y > m_terminalVelocity) {
+            m_velocity.y = m_terminalVelocity;
+        } else if (m_velocity.y < -m_terminalVelocity) {
+            m_velocity.y = -m_terminalVelocity;
+        }
+
+        // Update position
+        m_position += m_velocity * dt.asSeconds();
     }
-
-    // Update position
-    m_position += m_velocity * dt.asSeconds();
 }
 
 void Bird::draw(sf::RenderTarget& target, float alpha) {
@@ -65,6 +67,7 @@ void Bird::draw(sf::RenderTarget& target, float alpha) {
 }
 
 void Bird::jump() {
+    m_started = true;
     // In anti-gravity, jump velocity is reversed
     m_velocity.y = m_isAntiGravity ? -m_jumpVelocity : m_jumpVelocity;
 }

@@ -8,6 +8,8 @@ find_package(SFML COMPONENTS Graphics Window System Audio REQUIRED)
 add_executable(FlappyBird
     main.cpp
     Game.cpp
+    GameState.cpp
+    Pipe.cpp
     Bird.cpp
     AssetManager.cpp
 )

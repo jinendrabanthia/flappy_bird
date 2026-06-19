@@ -11,6 +11,8 @@ public:
 
     void jump();
     void toggleAntiGravity();
+    
+    sf::FloatRect getGlobalBounds() const { return m_sprite.getGlobalBounds(); }
 
 private:
     sf::Sprite m_sprite;
@@ -34,4 +36,6 @@ private:
     float m_startGravity;
     float m_startRotation;
     float m_targetRotation;
+
+    bool m_started = false;
 };

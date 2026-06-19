@@ -25,7 +25,7 @@ void Game::run() {
         // Calculate interpolation alpha
         float alpha = timeSinceLastUpdate.asSeconds() / m_timePerFrame.asSeconds();
         
-        m_window.clear();
+        m_window.clear(sf::Color(135, 206, 235));
         if (!m_states.empty()) {
             m_states.top()->draw(m_window, alpha);
         }
