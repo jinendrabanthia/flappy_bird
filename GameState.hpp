@@ -83,6 +83,11 @@ private:
     std::vector<sf::RectangleShape> m_dropdownItemBoxes;
     std::vector<sf::Text> m_dropdownItemTexts;
     
+    // Gravity UI
+    bool m_isAntiGravityMode = false;
+    sf::RectangleShape m_gravityButtonBox;
+    sf::Text m_gravityButtonText;
+    
     sf::SoundBuffer m_flapBuffer;
     sf::Sound m_flapSound;
     

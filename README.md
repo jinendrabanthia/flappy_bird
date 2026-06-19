@@ -1,6 +1,6 @@
 # Flappy Bird (SFML 3)
 
-A classic Flappy Bird clone built entirely in modern C++17 and SFML 3! 
+A classic Flappy Bird game built entirely in modern C++17 and SFML 3! 
 Designed by Jinendra Banthia.
 
 ## Features

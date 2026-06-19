@@ -140,6 +140,21 @@ void Bird::toggleAntiGravity() {
     if (m_startRotation > 180.f) m_startRotation -= 360.f;
 }
 
+void Bird::setAntiGravityImmediate(bool enabled) {
+    if (m_isAntiGravity == enabled) return;
+    m_isAntiGravity = enabled;
+    m_isTransitioning = false;
+    
+    m_gravity = m_isAntiGravity ? -1500.f : 1500.f;
+    m_targetGravity = m_gravity;
+    if (m_isUnderwater) {
+        m_gravity *= 0.5f;
+        m_targetGravity *= 0.5f;
+    }
+    
+    m_sprite.setRotation(sf::degrees(m_isAntiGravity ? 180.f : 0.f));
+}
+
 void Bird::setUnderwater(bool enabled) {
     if (m_isUnderwater == enabled) return;
     m_isUnderwater = enabled;

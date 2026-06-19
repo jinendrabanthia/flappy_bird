@@ -14,7 +14,7 @@ GameState::GameState(Game& game)
       m_titleShadowText(m_titleFont), m_titleText(m_titleFont), 
       m_subtitleShadowText(m_font), m_subtitleText(m_font), m_startPromptText(m_font),
       m_gameOverShadowText(m_titleFont), m_gameOverText(m_titleFont), m_crashSound(m_crashBuffer),
-      m_dropdownMainText(m_uiFont), m_logoSprite(m_logoTexture),
+      m_dropdownMainText(m_uiFont), m_gravityButtonText(m_uiFont), m_logoSprite(m_logoTexture),
       m_bgSprite1(m_bgRenderTexture.getTexture()), m_bgSprite2(m_bgRenderTexture.getTexture()) {
     std::random_device rd;
     m_rng.seed(rd());
@@ -162,6 +162,19 @@ void GameState::init() {
             text.setPosition({30.f, 20.f + 35.f + (i - 1) * 30.f + 5.f});
             m_dropdownItemTexts.push_back(text);
         }
+        
+        m_gravityButtonBox.setSize({160.f, 35.f});
+        m_gravityButtonBox.setFillColor(sf::Color(0, 0, 0, 180));
+        m_gravityButtonBox.setOutlineColor(sf::Color(255, 255, 255, 100));
+        m_gravityButtonBox.setOutlineThickness(1.f);
+        m_gravityButtonBox.setPosition({200.f, 20.f});
+
+        m_gravityButtonText.setFont(m_uiFont);
+        m_gravityButtonText.setCharacterSize(18);
+        m_gravityButtonText.setFillColor(sf::Color(240, 240, 240));
+        m_gravityButtonText.setOutlineThickness(0.f);
+        m_gravityButtonText.setPosition({210.f, 26.f});
+        m_gravityButtonText.setString("Gravity: Normal");
     }
 
     // Generate procedural flap sound
@@ -215,23 +228,37 @@ void GameState::init() {
     if (m_bgRenderTexture.resize({800u, 600u})) {
         m_bgRenderTexture.clear(sf::Color(135, 206, 235)); // Sky Blue
 
+        const char* cloudPixels[] = {
+            "..........WWWW..............",
+            "........WWWWWWWW............",
+            "......WWWWWWWWWWWW...WW.....",
+            "....WWWWWWWWWWWWWWWWWWWW....",
+            "...WWWWWWWWWWWWWWWWWWWWWW...",
+            "..WWWWWWWWWWWWWWWWWWWWWWWW..",
+            ".WWWWWWWWWWWWWWWWWWWWWWWWWW.",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+            "WLLLLLLLLLLLLLLLLLLLLLLLLLLW",
+            "LLLLLLLLLLLLLLLLLLLLLLLLLLLL",
+            ".LLLLLLLLLLLLLLLLLLLLLLLLLL."
+        };
+        
+        sf::Image cloudImage;
+        cloudImage.resize({28, 12}, sf::Color::Transparent);
+        for (unsigned int y = 0; y < 12; ++y) {
+            for (unsigned int x = 0; x < 28; ++x) {
+                if (cloudPixels[y][x] == 'W') cloudImage.setPixel({x, y}, sf::Color::White);
+                else if (cloudPixels[y][x] == 'L') cloudImage.setPixel({x, y}, sf::Color(220, 220, 220)); // Light Gray
+            }
+        }
+        sf::Texture cloudTex;
+        cloudTex.loadFromImage(cloudImage);
+        sf::Sprite cloudSprite(cloudTex);
+
         auto drawCloud = [&](float x, float y, float scale) {
-            sf::CircleShape c(30.f * scale);
-            c.setFillColor(sf::Color::White);
-            c.setPosition({x, y});
-            m_bgRenderTexture.draw(c);
-            
-            c.setRadius(40.f * scale);
-            c.setPosition({x + 25.f * scale, y - 20.f * scale});
-            m_bgRenderTexture.draw(c);
-            
-            c.setRadius(35.f * scale);
-            c.setPosition({x + 65.f * scale, y - 10.f * scale});
-            m_bgRenderTexture.draw(c);
-            
-            c.setRadius(25.f * scale);
-            c.setPosition({x + 95.f * scale, y + 10.f * scale});
-            m_bgRenderTexture.draw(c);
+            cloudSprite.setPosition({x, y});
+            cloudSprite.setScale({scale * 6.f, scale * 6.f}); // Scale up the pixel art
+            m_bgRenderTexture.draw(cloudSprite);
         };
 
         drawCloud(100.f, 100.f, 1.2f);
@@ -261,6 +288,9 @@ void GameState::init() {
 
 void GameState::reset() {
     m_bird = std::make_unique<Bird>(m_birdTexture);
+    if (m_isAntiGravityMode) {
+        m_bird->setAntiGravityImmediate(true);
+    }
     m_pipes.clear();
     m_pipeSpawnTimer = 0.f;
     m_score = 0;
@@ -319,6 +349,14 @@ void GameState::handleInput() {
     if (isMouseDown && !mousePressed) {
         mousePressed = true;
         if (!m_bird->hasStarted() || m_isGameOver) {
+            if (m_gravityButtonBox.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+                m_isAntiGravityMode = !m_isAntiGravityMode;
+                m_gravityButtonText.setString(m_isAntiGravityMode ? "Gravity: Anti" : "Gravity: Normal");
+                if (m_bird) {
+                    m_bird->setAntiGravityImmediate(m_isAntiGravityMode);
+                }
+            }
+            
             if (m_dropdownMainBox.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
                 m_isDropdownOpen = !m_isDropdownOpen;
             } else if (m_isDropdownOpen) {
@@ -594,6 +632,8 @@ void GameState::draw(sf::RenderTarget& target, float alpha) {
     
     // Draw Dropdown UI (drawn over everything else so it's clickable)
     if (!m_bird->hasStarted() || m_isGameOver) {
+        target.draw(m_gravityButtonBox);
+        target.draw(m_gravityButtonText);
         target.draw(m_dropdownMainBox);
         target.draw(m_dropdownMainText);
         if (m_isDropdownOpen) {

@@ -3,7 +3,7 @@
 #include <memory>
 
 int main() {
-    Game game(800, 600, "Flappy Bird Clone");
+    Game game(800, 600, "Flappy Bird");
     game.pushState(std::make_unique<GameState>(game));
     game.run();
     return 0;

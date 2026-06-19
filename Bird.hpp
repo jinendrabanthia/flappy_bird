@@ -11,6 +11,8 @@ public:
 
     void jump();
     void toggleAntiGravity();
+    void setAntiGravityImmediate(bool enabled);
+    bool isAntiGravity() const { return m_isAntiGravity; }
     void setJumpHeld(bool held) { m_isJumpHeld = held; }
     
     void dash();
