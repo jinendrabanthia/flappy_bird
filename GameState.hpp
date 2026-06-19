@@ -35,6 +35,7 @@ private:
     sf::Text m_scoreText;
     
     int m_score = 0;
+    int m_highScore = 0;
     float m_timeAlive = 0.f;
     
     sf::SoundBuffer m_flapBuffer;

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <fstream>
 
 GameState::GameState(Game& game) 
     : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font), m_flapSound(m_flapBuffer) {
@@ -88,16 +89,31 @@ void GameState::init() {
     m_flapBuffer.loadFromSamples(samples.data(), samples.size(), 1, sampleRate, {sf::SoundChannel::Mono});
     m_flapSound.setBuffer(m_flapBuffer);
 
+    std::ifstream inFile("highscore.txt");
+    if (inFile.is_open()) {
+        inFile >> m_highScore;
+        inFile.close();
+    }
+
     reset();
 }
 
 void GameState::reset() {
+    if (m_score > m_highScore) {
+        m_highScore = m_score;
+        std::ofstream outFile("highscore.txt");
+        if (outFile.is_open()) {
+            outFile << m_highScore;
+            outFile.close();
+        }
+    }
+
     m_bird = std::make_unique<Bird>(m_birdTexture);
     m_pipes.clear();
     m_pipeSpawnTimer = 0.f;
     m_score = 0;
     m_timeAlive = 0.f;
-    m_scoreText.setString("Score: 0 | Time: 0s");
+    m_scoreText.setString("High: " + std::to_string(m_highScore) + " | Score: 0 | Time: 0s");
     m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
 }
 
@@ -136,7 +152,7 @@ void GameState::update(sf::Time dt) {
         
         if (m_bird->hasStarted()) {
             m_timeAlive += dt.asSeconds();
-            m_scoreText.setString("Score: " + std::to_string(m_score) + " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
+            m_scoreText.setString("High: " + std::to_string(m_highScore) + " | Score: " + std::to_string(m_score) + " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
             m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
 
             // Update pipes
