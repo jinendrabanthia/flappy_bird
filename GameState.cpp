@@ -3,7 +3,8 @@
 #include <random>
 #include <algorithm>
 
-GameState::GameState(Game& game) : m_game(game), m_pipeSpawnTimer(0.f) {
+GameState::GameState(Game& game) 
+    : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font) {
     std::random_device rd;
     m_rng.seed(rd());
 }
@@ -46,6 +47,15 @@ void GameState::init() {
         // Ignore for now
     }
 
+    if (m_font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+        m_scoreText.setFont(m_font);
+        m_scoreText.setCharacterSize(20);
+        m_scoreText.setFillColor(sf::Color::White);
+        m_scoreText.setOutlineColor(sf::Color::Black);
+        m_scoreText.setOutlineThickness(2.f);
+        m_scoreText.setPosition({800.f - 250.f, 20.f}); // Roughly top right
+    }
+
     reset();
 }
 
@@ -53,6 +63,10 @@ void GameState::reset() {
     m_bird = std::make_unique<Bird>(m_birdTexture);
     m_pipes.clear();
     m_pipeSpawnTimer = 0.f;
+    m_score = 0;
+    m_timeAlive = 0.f;
+    m_scoreText.setString("Score: 0 | Time: 0s");
+    m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
 }
 
 void GameState::spawnPipe() {
@@ -87,11 +101,17 @@ void GameState::update(sf::Time dt) {
     if (m_bird) {
         m_bird->update(dt);
         
-        // Update pipes
-        m_pipeSpawnTimer += dt.asSeconds();
-        if (m_pipeSpawnTimer >= m_pipeSpawnInterval) {
-            spawnPipe();
-            m_pipeSpawnTimer = 0.f;
+        if (m_bird->hasStarted()) {
+            m_timeAlive += dt.asSeconds();
+            m_scoreText.setString("Score: " + std::to_string(m_score) + " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
+            m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
+
+            // Update pipes
+            m_pipeSpawnTimer += dt.asSeconds();
+            if (m_pipeSpawnTimer >= m_pipeSpawnInterval) {
+                spawnPipe();
+                m_pipeSpawnTimer = 0.f;
+            }
         }
 
         for (auto& pipe : m_pipes) {
@@ -112,11 +132,18 @@ void GameState::update(sf::Time dt) {
             collision = true;
         }
 
-        for (const auto& pipe : m_pipes) {
+        for (auto& pipe : m_pipes) {
             if (birdBounds.findIntersection(pipe.getTopBounds()) || 
                 birdBounds.findIntersection(pipe.getBottomBounds())) {
                 collision = true;
                 break;
+            }
+            
+            if (!pipe.isPassed() && birdBounds.position.x > pipe.getX() + 80.f) {
+                pipe.setPassed(true);
+                m_score++;
+                // String is updated every frame in the time loop above anyway, 
+                // but we can update it immediately here too to avoid 1 frame delay.
             }
         }
 
@@ -134,4 +161,6 @@ void GameState::draw(sf::RenderTarget& target, float alpha) {
     if (m_bird) {
         m_bird->draw(target, alpha);
     }
+    
+    target.draw(m_scoreText);
 }

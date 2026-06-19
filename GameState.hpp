@@ -29,4 +29,10 @@ private:
     const float m_pipeSpawnInterval = 1.5f;
 
     std::mt19937 m_rng;
+
+    sf::Font m_font;
+    sf::Text m_scoreText;
+    
+    int m_score = 0;
+    float m_timeAlive = 0.f;
 };

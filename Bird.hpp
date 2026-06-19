@@ -13,6 +13,7 @@ public:
     void toggleAntiGravity();
     
     sf::FloatRect getGlobalBounds() const { return m_sprite.getGlobalBounds(); }
+    bool hasStarted() const { return m_started; }
 
 private:
     sf::Sprite m_sprite;

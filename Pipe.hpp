@@ -15,7 +15,11 @@ public:
     sf::FloatRect getTopBounds() const;
     sf::FloatRect getBottomBounds() const;
 
+    bool isPassed() const { return m_passed; }
+    void setPassed(bool passed) { m_passed = passed; }
+
 private:
+    bool m_passed = false;
     sf::Vector2f m_position;
     sf::Vector2f m_previousPosition;
     float m_gapY;
