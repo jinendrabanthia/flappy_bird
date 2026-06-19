@@ -16,7 +16,7 @@ sf::Texture& AssetManager::getTexture(const std::string& name) {
 
 void AssetManager::loadFont(const std::string& name, const std::string& fileName) {
     auto font = std::make_unique<sf::Font>();
-    if (font->loadFromFile(fileName)) {
+    if (font->openFromFile(fileName)) {
         m_fonts[name] = std::move(font);
     } else {
         std::cerr << "Failed to load font: " << fileName << std::endl;

@@ -15,10 +15,10 @@ Bird::Bird(const sf::Texture& texture)
     , m_startGravity(1500.f)
     , m_startRotation(0.f)
     , m_targetRotation(0.f)
+    , m_sprite(texture)
 {
-    m_sprite.setTexture(texture);
     // Set origin to center for proper rotation
-    m_sprite.setOrigin(texture.getSize().x / 2.f, texture.getSize().y / 2.f);
+    m_sprite.setOrigin(sf::Vector2f(texture.getSize().x / 2.f, texture.getSize().y / 2.f));
     m_sprite.setPosition(m_position);
 }
 
@@ -36,7 +36,7 @@ void Bird::update(sf::Time dt) {
         // Linear interpolation for gravity and rotation
         m_gravity = m_startGravity + t * (m_targetGravity - m_startGravity);
         float currentRotation = m_startRotation + t * (m_targetRotation - m_startRotation);
-        m_sprite.setRotation(currentRotation);
+        m_sprite.setRotation(sf::degrees(currentRotation));
 
         if (t >= 1.0f) {
             m_isTransitioning = false;
@@ -77,7 +77,7 @@ void Bird::toggleAntiGravity() {
     m_startGravity = m_gravity;
     m_targetGravity = m_isAntiGravity ? -1500.f : 1500.f;
     
-    m_startRotation = m_sprite.getRotation();
+    m_startRotation = m_sprite.getRotation().asDegrees();
     m_targetRotation = m_isAntiGravity ? 180.f : 0.f;
     
     // Normalize start rotation to prevent spinning multiple times

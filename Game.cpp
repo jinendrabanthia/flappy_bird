@@ -1,8 +1,9 @@
 #include "Game.hpp"
 #include <iostream>
+#include <optional>
 
 Game::Game(int width, int height, const std::string& title)
-    : m_window(sf::VideoMode(width, height), title, sf::Style::Close) {
+    : m_window(sf::VideoMode({static_cast<unsigned int>(width), static_cast<unsigned int>(height)}), title, sf::Style::Close) {
 }
 
 void Game::run() {
@@ -33,9 +34,8 @@ void Game::run() {
 }
 
 void Game::processEvents() {
-    sf::Event event;
-    while (m_window.pollEvent(event)) {
-        if (event.type == sf::Event::Closed) {
+    while (const std::optional event = m_window.pollEvent()) {
+        if (event->is<sf::Event::Closed>()) {
             m_window.close();
         }
         // State input is polled directly in state->handleInput() via sf::Keyboard, 
