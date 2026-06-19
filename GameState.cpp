@@ -12,6 +12,7 @@ GameState::GameState(Game& game)
     : m_game(game), m_pipeSpawnTimer(0.f), m_scoreText(m_font), m_flapSound(m_flapBuffer),
       m_titleShadowText(m_titleFont), m_titleText(m_titleFont), 
       m_subtitleShadowText(m_font), m_subtitleText(m_font), m_startPromptText(m_font),
+      m_gameOverShadowText(m_titleFont), m_gameOverText(m_titleFont), m_crashSound(m_crashBuffer),
       m_bgSprite1(m_bgRenderTexture.getTexture()), m_bgSprite2(m_bgRenderTexture.getTexture()) {
     std::random_device rd;
     m_rng.seed(rd());
@@ -98,6 +99,19 @@ void GameState::init() {
         m_startPromptText.setOutlineColor(sf::Color(200, 0, 0)); // Red Outline
         m_startPromptText.setOutlineThickness(4.f);
         m_startPromptText.setPosition({800.f / 2.f - m_startPromptText.getGlobalBounds().size.x / 2.f, 400.f});
+
+        m_gameOverText.setFont(m_titleFont);
+        m_gameOverText.setString("GAME OVER");
+        m_gameOverText.setCharacterSize(100);
+        m_gameOverText.setFillColor(sf::Color(255, 50, 50)); // Red
+        m_gameOverText.setOutlineColor(sf::Color::White);
+        m_gameOverText.setOutlineThickness(4.f);
+        m_gameOverText.setPosition({800.f / 2.f - m_gameOverText.getGlobalBounds().size.x / 2.f, 150.f});
+
+        m_gameOverShadowText = m_gameOverText;
+        m_gameOverShadowText.setFillColor(sf::Color(0, 0, 0, 150));
+        m_gameOverShadowText.setOutlineThickness(0);
+        m_gameOverShadowText.setPosition({m_gameOverText.getPosition().x + 8.f, m_gameOverText.getPosition().y + 8.f});
     }
 
     // Generate procedural flap sound
@@ -129,6 +143,18 @@ void GameState::init() {
     }
     m_flapBuffer.loadFromSamples(samples.data(), samples.size(), 1, sampleRate, {sf::SoundChannel::Mono});
     m_flapSound.setBuffer(m_flapBuffer);
+
+    // Generate procedural crash sound
+    std::vector<std::int16_t> crashSamples;
+    for (int i = 0; i < sampleRate * 0.3f; ++i) { // 300ms crash
+        float t = (float)i / sampleRate;
+        float envelope = 1.0f - (t / 0.3f);
+        envelope = envelope * envelope * envelope; // Sharp exponential decay
+        short noise = (m_rng() % 32767) - 16384;
+        crashSamples.push_back(noise * envelope);
+    }
+    m_crashBuffer.loadFromSamples(crashSamples.data(), crashSamples.size(), 1, sampleRate, {sf::SoundChannel::Mono});
+    m_crashSound.setBuffer(m_crashBuffer);
 
     std::ifstream inFile("highscore.txt");
     if (inFile.is_open()) {
@@ -184,20 +210,14 @@ void GameState::init() {
 }
 
 void GameState::reset() {
-    if (m_score > m_highScore) {
-        m_highScore = m_score;
-        std::ofstream outFile("highscore.txt");
-        if (outFile.is_open()) {
-            outFile << m_highScore;
-            outFile.close();
-        }
-    }
-
     m_bird = std::make_unique<Bird>(m_birdTexture);
     m_pipes.clear();
     m_pipeSpawnTimer = 0.f;
     m_score = 0;
     m_timeAlive = 0.f;
+    m_isGameOver = false;
+    m_startPromptText.setString(">> Press SPACE to start! <<");
+    m_startPromptText.setPosition({800.f / 2.f - m_startPromptText.getGlobalBounds().size.x / 2.f, 400.f});
     m_scoreText.setString("High: " + std::to_string(m_highScore) + " | Score: 0 | Time: 0s");
     m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
 }
@@ -210,10 +230,15 @@ void GameState::spawnPipe() {
 
 void GameState::handleInput() {
     static bool spacePressed = false;
+    
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)) {
         if (!spacePressed) {
-            if (m_bird) m_bird->jump();
-            m_flapSound.play();
+            if (m_isGameOver) {
+                reset();
+            } else if (m_bird) {
+                m_bird->jump();
+                m_flapSound.play();
+            }
             spacePressed = true;
         }
     } else {
@@ -235,7 +260,7 @@ void GameState::update(sf::Time dt) {
     if (m_bird) {
         m_bird->update(dt);
         
-        if (m_bird->hasStarted()) {
+        if (m_bird->hasStarted() && !m_isGameOver) {
             m_timeAlive += dt.asSeconds();
             m_scoreText.setString("High: " + std::to_string(m_highScore) + " | Score: " + std::to_string(m_score) + " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
             m_scoreText.setPosition({800.f - m_scoreText.getGlobalBounds().size.x - 20.f, 20.f});
@@ -254,8 +279,8 @@ void GameState::update(sf::Time dt) {
                 spawnPipe();
                 m_pipeSpawnTimer = 0.f;
             }
-        } else {
-            // Blinking effect for start text
+        } else if (!m_bird->hasStarted() || m_isGameOver) {
+            // Blinking effect for start/restart text
             m_menuTimer += dt.asSeconds();
             float alpha = (std::sin(m_menuTimer * 5.f) + 1.f) / 2.f * 255.f;
             m_startPromptText.setFillColor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(alpha)));
@@ -267,41 +292,45 @@ void GameState::update(sf::Time dt) {
             m_titleShadowText.setPosition({m_titleText.getPosition().x + 8.f, m_titleText.getPosition().y + 8.f});
         }
 
-        for (auto& pipe : m_pipes) {
-            pipe.update(dt);
-        }
-
-        // Remove offscreen pipes
-        m_pipes.erase(std::remove_if(m_pipes.begin(), m_pipes.end(), 
-            [](const Pipe& p) { return p.isOffScreen(); }), m_pipes.end());
-
-        // Collision detection
-        sf::FloatRect birdBounds = m_bird->getGlobalBounds();
-        
-        bool collision = false;
-        
-        // Floor and ceiling
-        if (birdBounds.position.y < 0.f || birdBounds.position.y + birdBounds.size.y > 600.f) {
-            collision = true;
-        }
-
-        for (auto& pipe : m_pipes) {
-            if (birdBounds.findIntersection(pipe.getTopBounds()) || 
-                birdBounds.findIntersection(pipe.getBottomBounds())) {
-                collision = true;
-                break;
-            }
+        if (!m_isGameOver) {
+            // Collision detection
+            sf::FloatRect birdBounds = m_bird->getGlobalBounds();
+            bool collision = false;
             
-            if (!pipe.isPassed() && birdBounds.position.x > pipe.getX() + 80.f) {
-                pipe.setPassed(true);
-                m_score++;
-                // String is updated every frame in the time loop above anyway, 
-                // but we can update it immediately here too to avoid 1 frame delay.
+            // Floor and ceiling
+            if (birdBounds.position.y < 0.f || birdBounds.position.y + birdBounds.size.y > 600.f) {
+                collision = true;
             }
-        }
 
-        if (collision) {
-            reset();
+            for (auto& pipe : m_pipes) {
+                pipe.update(dt);
+                
+                if (birdBounds.findIntersection(pipe.getTopBounds()) || 
+                    birdBounds.findIntersection(pipe.getBottomBounds())) {
+                    collision = true;
+                }
+                
+                if (!pipe.isPassed() && birdBounds.position.x > pipe.getX() + 80.f) {
+                    pipe.setPassed(true);
+                    m_score++;
+                }
+            }
+
+            // Remove offscreen pipes
+            m_pipes.erase(std::remove_if(m_pipes.begin(), m_pipes.end(), 
+                [](const Pipe& p) { return p.isOffScreen(); }), m_pipes.end());
+
+            if (collision) {
+                m_isGameOver = true;
+                m_crashSound.play();
+                if (m_score > m_highScore) {
+                    m_highScore = m_score;
+                    std::ofstream outFile("highscore.txt");
+                    outFile << m_highScore;
+                }
+                m_startPromptText.setString(">> Press SPACE to restart! <<");
+                m_startPromptText.setPosition({800.f / 2.f - m_startPromptText.getGlobalBounds().size.x / 2.f, 400.f});
+            }
         }
     }
 }
@@ -320,11 +349,17 @@ void GameState::draw(sf::RenderTarget& target, float alpha) {
     
     target.draw(m_scoreText);
     
-    if (m_bird && !m_bird->hasStarted()) {
+    if (m_bird && !m_bird->hasStarted() && !m_isGameOver) {
         target.draw(m_titleShadowText);
         target.draw(m_titleText);
         target.draw(m_subtitleShadowText);
         target.draw(m_subtitleText);
+        target.draw(m_startPromptText);
+    }
+    
+    if (m_isGameOver) {
+        target.draw(m_gameOverShadowText);
+        target.draw(m_gameOverText);
         target.draw(m_startPromptText);
     }
 }

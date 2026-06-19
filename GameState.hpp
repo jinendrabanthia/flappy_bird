@@ -41,6 +41,10 @@ private:
     sf::Text m_subtitleShadowText;
     sf::Text m_subtitleText;
     sf::Text m_startPromptText;
+    
+    sf::Text m_gameOverShadowText;
+    sf::Text m_gameOverText;
+    
     float m_menuTimer = 0.f;
     
     sf::RenderTexture m_bgRenderTexture;
@@ -51,7 +55,11 @@ private:
     int m_score = 0;
     int m_highScore = 0;
     float m_timeAlive = 0.f;
+    bool m_isGameOver = false;
     
     sf::SoundBuffer m_flapBuffer;
     sf::Sound m_flapSound;
+    
+    sf::SoundBuffer m_crashBuffer;
+    sf::Sound m_crashSound;
 };
