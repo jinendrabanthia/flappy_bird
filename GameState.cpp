@@ -9,31 +9,31 @@ GameState::GameState(Game& game) : m_game(game), m_pipeSpawnTimer(0.f) {
 }
 
 void GameState::init() {
-    // Generate a 16x16 pixel-art bird
+    // Generate a 32x16 pixel-art bird (2 frames)
     const char* pixels[] = {
-        "....YYYYYYYY....",
-        "...YYYWWWWYY....",
-        "..YYYYWBBWYYY...",
-        ".YYYYYWWWWYYYYY.",
-        ".YYYYYYYYYYOOOO.",
-        ".YYYYYYYYYOOOOO.",
-        "..YYYYYYYYYYYY..",
-        "...YYYYYYYYYY...",
-        "....YYYYYYYY....",
-        "................",
-        "................",
-        "................",
-        "................",
-        "................",
-        "................",
-        "................"
+        "....YYYYYYYY........YYYYYYYY....",
+        "...YYYWWWWYY.......YYYWWWWYY....",
+        "..YYYYWBBWYYY.....YYYYWBBWYYY...",
+        ".YYYYYWWWWYYYYY..YYYYYWWWWYYYYY.",
+        ".YYWYYYYYYYOOOO..YYYYYYYYYYOOOO.",
+        ".YYWWYYYYYOOOOO..YYYWWYYYYOOOOO.",
+        "..YWWYYYYYYYYY....YYWWYYYYYYYY..",
+        "...YYYYYYYYYY......YWWYYYYYYY...",
+        "....YYYYYYYY........YYYYYYYY....",
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "................................",
+        "................................"
     };
 
     sf::Image image;
-    image.resize({16, 16}, sf::Color::Transparent);
+    image.resize({32, 16}, sf::Color::Transparent);
 
     for (unsigned int y = 0; y < 16; ++y) {
-        for (unsigned int x = 0; x < 16; ++x) {
+        for (unsigned int x = 0; x < 32; ++x) {
             char c = pixels[y][x];
             if (c == 'Y') image.setPixel({x, y}, sf::Color::Yellow);
             else if (c == 'W') image.setPixel({x, y}, sf::Color::White);

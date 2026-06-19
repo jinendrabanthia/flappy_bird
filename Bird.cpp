@@ -8,7 +8,7 @@ Bird::Bird(const sf::Texture& texture)
     , m_gravity(1500.f)
     , m_targetGravity(1500.f)
     , m_terminalVelocity(800.f)
-    , m_jumpVelocity(-600.f)
+    , m_jumpVelocity(-450.f)
     , m_isAntiGravity(false)
     , m_isTransitioning(false)
     , m_transitionTimer(0.f)
@@ -17,8 +17,11 @@ Bird::Bird(const sf::Texture& texture)
     , m_targetRotation(0.f)
     , m_sprite(texture)
 {
+    // Set up initial frame
+    m_sprite.setTextureRect(sf::IntRect({0, 0}, {16, 16}));
     // Set origin to center for proper rotation
-    m_sprite.setOrigin(sf::Vector2f(texture.getSize().x / 2.f, texture.getSize().y / 2.f));
+    m_sprite.setOrigin(sf::Vector2f(8.f, 8.f));
+    m_sprite.setScale({1.5f, 1.5f});
     m_sprite.setPosition(m_position);
 }
 
@@ -56,6 +59,14 @@ void Bird::update(sf::Time dt) {
 
         // Update position
         m_position += m_velocity * dt.asSeconds();
+        
+        // Animation
+        m_animationTimer += dt.asSeconds();
+        if (m_animationTimer > 0.15f) {
+            m_animationTimer = 0.f;
+            m_currentFrame = (m_currentFrame + 1) % 2;
+            m_sprite.setTextureRect(sf::IntRect({m_currentFrame * 16, 0}, {16, 16}));
+        }
     }
 }
 

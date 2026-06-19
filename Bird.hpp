@@ -38,4 +38,6 @@ private:
     float m_targetRotation;
 
     bool m_started = false;
+    float m_animationTimer = 0.f;
+    int m_currentFrame = 0;
 };
