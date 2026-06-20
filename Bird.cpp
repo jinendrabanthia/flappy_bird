@@ -25,6 +25,12 @@ Bird::Bird(const sf::Texture& texture)
     m_sprite.setPosition(m_position);
 }
 
+void Bird::setPosition(sf::Vector2f pos) {
+    m_position = pos;
+    m_previousPosition = pos;
+    m_sprite.setPosition(pos);
+}
+
 void Bird::handleInput() {
     // Input is usually handled by the GameState calling jump() or toggleAntiGravity()
 }
@@ -58,7 +64,9 @@ void Bird::update(sf::Time dt) {
         } else {
             // Apply gravity
             float currentGravity = m_gravity;
-            if (m_isJumpHeld && m_jumpHoldTimer > 0.f) {
+            if (m_isZeroGravity) {
+                currentGravity = 0.f;
+            } else if (m_isJumpHeld && m_jumpHoldTimer > 0.f) {
                 m_jumpHoldTimer -= dt.asSeconds();
                 currentGravity *= 0.2f; // Weak gravity while holding space
             }
@@ -158,8 +166,23 @@ void Bird::setAntiGravityImmediate(bool enabled) {
 void Bird::setUnderwater(bool enabled) {
     if (m_isUnderwater == enabled) return;
     m_isUnderwater = enabled;
-    m_jumpVelocity = m_isUnderwater ? -300.f : -450.f;
-    m_gravity = m_isAntiGravity ? (m_isUnderwater ? -750.f : -1500.f) : (m_isUnderwater ? 750.f : 1500.f);
+    
+    if (m_isUnderwater) {
+        m_terminalVelocity *= 0.5f;
+        m_jumpVelocity *= 0.8f;
+        m_gravity *= 0.5f;
+    } else {
+        m_terminalVelocity *= 2.0f;
+        m_jumpVelocity *= 1.25f;
+        m_gravity *= 2.0f;
+    }
+}
+
+void Bird::setZeroGravity(bool enabled) {
+    m_isZeroGravity = enabled;
+    if (enabled) {
+        m_velocity.y = 0.f;
+    }
 }
 
 void Bird::applyWind(float dx) {

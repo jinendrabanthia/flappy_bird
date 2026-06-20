@@ -4,7 +4,7 @@
 class Pipe {
 public:
     enum class Type {
-        Normal, Moving, Crushing, Diagonal, Breakable
+        Normal, Moving, Crushing, Diagonal, Breakable, FakeOut
     };
     Pipe(float x, float gapY, float gapSize, Type type = Type::Normal);
 
@@ -22,8 +22,14 @@ public:
     void setPassed(bool passed) { m_passed = passed; }
 
     Type getType() const { return m_type; }
+    void setType(Type type) { m_type = type; }
     bool isBroken() const { return m_broken; }
     void breakPipe() { m_broken = true; }
+    
+    float getGapY() const { return m_gapY; }
+    void setGapY(float y) { m_gapY = y; }
+    float getTargetGapY() const { return m_targetGapY; }
+    void setTargetGapY(float y) { m_targetGapY = y; }
 
 private:
     Type m_type;
@@ -39,6 +45,7 @@ private:
     // For advanced variants
     float m_timeAlive = 0.f;
     float m_baseGapY;
+    float m_targetGapY; // For FakeOut
     float m_topOffsetX = 0.f;
     float m_bottomOffsetX = 0.f;
     

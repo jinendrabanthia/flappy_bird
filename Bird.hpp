@@ -13,6 +13,7 @@ public:
     void toggleAntiGravity();
     void setAntiGravityImmediate(bool enabled);
     bool isAntiGravity() const { return m_isAntiGravity; }
+    void setZeroGravity(bool enabled);
     void setJumpHeld(bool held) { m_isJumpHeld = held; }
     
     void dash();
@@ -21,8 +22,10 @@ public:
     void setScreenWrap(bool enabled) { m_screenWrapEnabled = enabled; }
     void setUnderwater(bool enabled);
     void applyWind(float dx);
-    
     sf::FloatRect getGlobalBounds() const { return m_sprite.getGlobalBounds(); }
+    sf::Vector2f getPosition() const { return m_position; }
+    void setPosition(sf::Vector2f pos);
+    
     bool hasStarted() const { return m_started; }
 
 private:
@@ -65,4 +68,5 @@ private:
 
     bool m_screenWrapEnabled = false;
     bool m_isUnderwater = false;
+    bool m_isZeroGravity = false;
 };

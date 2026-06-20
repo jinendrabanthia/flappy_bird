@@ -9,6 +9,7 @@ Pipe::Pipe(float x, float gapY, float gapSize, Type type)
     , m_gapY(gapY)
     , m_gapSize(gapSize)
     , m_baseGapY(gapY)
+    , m_targetGapY(gapY)
 {
     sf::Color pipeColor = sf::Color::Green;
     sf::Color outlineColor = sf::Color(0, 100, 0);
@@ -26,6 +27,9 @@ Pipe::Pipe(float x, float gapY, float gapSize, Type type)
         pipeColor = sf::Color::Magenta;
         outlineColor = sf::Color(139, 0, 139);
         m_topOffsetX = 50.f; // The top pipe is pushed right
+    } else if (m_type == Type::FakeOut) {
+        pipeColor = sf::Color(100, 100, 255); // Light Blue
+        outlineColor = sf::Color(0, 0, 139); // Dark Blue
     }
 
     m_topShape.setFillColor(pipeColor);
@@ -48,6 +52,9 @@ void Pipe::update(sf::Time dt) {
         if (m_gapSize > 60.f) {
             m_gapSize -= 20.f * dt.asSeconds();
         }
+    } else if (m_type == Type::FakeOut) {
+        // Smoothly move towards target gap
+        m_gapY += (m_targetGapY - m_gapY) * 10.f * dt.asSeconds();
     }
 }
 

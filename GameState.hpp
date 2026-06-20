@@ -16,6 +16,21 @@ struct SpeedBooster {
     bool active = true;
 };
 
+struct Particle {
+    sf::Vector2f pos;
+    sf::Vector2f vel;
+    float life;
+    float maxLife;
+    sf::Color color = sf::Color::White;
+};
+
+struct GravityZone {
+    sf::FloatRect bounds;
+    int type; // 0 = Inversion, 1 = Zero-G
+    sf::RectangleShape shape;
+    bool active = true;
+};
+
 class GameState : public State {
 public:
     GameState(Game& game);
@@ -35,7 +50,8 @@ private:
     
     std::vector<Pipe> m_pipes;
     float m_pipeSpawnTimer;
-    const float m_pipeSpawnInterval = 1.5f;
+    float m_currentPipeSpawnInterval = 1.5f;
+    const float m_basePipeSpawnInterval = 1.5f;
 
     std::mt19937 m_rng;
 
@@ -70,7 +86,9 @@ private:
 
     // Advanced Mechanics State
     std::vector<SpeedBooster> m_boosters;
+    std::vector<GravityZone> m_gravityZones;
     float m_boosterSpawnTimer = 0.f;
+    float m_zoneSpawnTimer = 0.f;
     float m_speedMultiplier = 1.0f;
     float m_speedBoostTimer = 0.f;
     
@@ -93,4 +111,17 @@ private:
     
     sf::SoundBuffer m_crashBuffer;
     sf::Sound m_crashSound;
+    
+    sf::SoundBuffer m_dingBuffer;
+    sf::Sound m_dingSound;
+
+    sf::SoundBuffer m_whooshBuffer;
+    sf::Sound m_whooshSound;
+
+    // Juice & Game Feel
+    float m_hitStopTimer = 0.f;
+    float m_screenShakeTimer = 0.f;
+    float m_deathFlashTimer = 0.f;
+    float m_trailTimer = 0.f;
+    std::vector<Particle> m_particles;
 };
