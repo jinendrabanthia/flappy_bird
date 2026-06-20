@@ -15,3 +15,10 @@ add_executable(FlappyBird
 )
 
 target_link_libraries(FlappyBird SFML::Graphics SFML::Window SFML::System SFML::Audio)
+
+add_custom_command(TARGET FlappyBird POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:FlappyBird>/assets
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/logo.png $<TARGET_FILE_DIR:FlappyBird>/logo.png
+)

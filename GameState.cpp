@@ -76,15 +76,15 @@ void GameState::init() {
               << std::filesystem::current_path().string() << "\n";
   }
 
-  if (m_font.openFromFile("C:/Windows/Fonts/consola.ttf")) {
+  if (m_font.openFromFile("assets/consola.ttf")) {
     m_scoreText.setFont(m_font);
-    m_scoreText.setCharacterSize(20);
+    m_scoreText.setCharacterSize(16);
     m_scoreText.setFillColor(sf::Color::White);
     m_scoreText.setOutlineColor(sf::Color::Black);
     m_scoreText.setOutlineThickness(2.f);
     m_scoreText.setPosition({800.f - 250.f, 20.f}); // Roughly top right
 
-    m_titleFont.openFromFile("C:/Windows/Fonts/impact.ttf");
+    m_titleFont.openFromFile("assets/impact.ttf");
 
     m_titleText.setFont(m_titleFont);
     m_titleText.setString("FLAPPY BIRD");
@@ -141,25 +141,25 @@ void GameState::init() {
     m_gameOverShadowText.setPosition({m_gameOverText.getPosition().x + 8.f,
                                       m_gameOverText.getPosition().y + 8.f});
 
-    m_uiFont.openFromFile("C:/Windows/Fonts/consola.ttf");
+    m_uiFont.openFromFile("assets/consola.ttf");
 
     // Dropdown UI - Sleek Minimalist Style
-    m_dropdownMainBox.setSize({160.f, 35.f});
+    m_dropdownMainBox.setSize({120.f, 35.f});
     m_dropdownMainBox.setFillColor(sf::Color::Transparent);
     m_dropdownMainBox.setOutlineColor(sf::Color::Transparent);
     m_dropdownMainBox.setOutlineThickness(0.f);
     m_dropdownMainBox.setPosition({20.f, 20.f});
 
     m_dropdownMainText.setFont(m_font);
-    m_dropdownMainText.setCharacterSize(18);
+    m_dropdownMainText.setCharacterSize(16);
     m_dropdownMainText.setFillColor(sf::Color::White);
     m_dropdownMainText.setOutlineColor(sf::Color::Black);
     m_dropdownMainText.setOutlineThickness(2.f);
     m_dropdownMainText.setPosition({30.f, 26.f});
-    m_dropdownMainText.setString("Start Level: 1  v");
+    m_dropdownMainText.setString("Level: 1  v");
 
     for (int i = 1; i <= 8; ++i) {
-      sf::RectangleShape box({160.f, 30.f});
+      sf::RectangleShape box({120.f, 30.f});
       box.setFillColor(sf::Color(0, 0, 0, 150));
       box.setOutlineColor(sf::Color(255, 255, 255, 50)); // Very faint outline
       box.setOutlineThickness(1.f);
@@ -167,7 +167,7 @@ void GameState::init() {
       m_dropdownItemBoxes.push_back(box);
 
       sf::Text text(m_font);
-      text.setCharacterSize(18);
+      text.setCharacterSize(16);
       text.setFillColor(sf::Color::White);
       text.setOutlineColor(sf::Color::Black);
       text.setOutlineThickness(2.f);
@@ -176,19 +176,19 @@ void GameState::init() {
       m_dropdownItemTexts.push_back(text);
     }
 
-    m_gravityButtonBox.setSize({160.f, 35.f});
+    m_gravityButtonBox.setSize({140.f, 35.f});
     m_gravityButtonBox.setFillColor(sf::Color::Transparent);
     m_gravityButtonBox.setOutlineColor(sf::Color::Transparent);
     m_gravityButtonBox.setOutlineThickness(0.f);
-    m_gravityButtonBox.setPosition({200.f, 20.f});
+    m_gravityButtonBox.setPosition({150.f, 20.f});
 
     m_gravityButtonText.setFont(m_font);
-    m_gravityButtonText.setCharacterSize(18);
+    m_gravityButtonText.setCharacterSize(16);
     m_gravityButtonText.setFillColor(sf::Color::White);
     m_gravityButtonText.setOutlineColor(sf::Color::Black);
     m_gravityButtonText.setOutlineThickness(2.f);
-    m_gravityButtonText.setPosition({210.f, 26.f});
-    m_gravityButtonText.setString("Gravity: Normal");
+    m_gravityButtonText.setPosition({160.f, 26.f});
+    m_gravityButtonText.setString("Grav: Normal");
   }
 
   // Generate procedural flap sound
@@ -343,8 +343,8 @@ void GameState::handleInput() {
       if (m_gravityButtonBox.getGlobalBounds().contains(
               static_cast<sf::Vector2f>(mousePos))) {
         m_isAntiGravityMode = !m_isAntiGravityMode;
-        m_gravityButtonText.setString(m_isAntiGravityMode ? "Gravity: Anti"
-                                                          : "Gravity: Normal");
+        m_gravityButtonText.setString(m_isAntiGravityMode ? "Grav: Anti"
+                                                          : "Grav: Normal");
         if (m_bird) {
           m_bird->setAntiGravityImmediate(m_isAntiGravityMode);
         }
@@ -360,7 +360,7 @@ void GameState::handleInput() {
                   static_cast<sf::Vector2f>(mousePos))) {
             m_selectedStartLevel = i + 1;
             m_dropdownMainText.setString(
-                "Start Level: " + std::to_string(m_selectedStartLevel) + "  v");
+                "Level: " + std::to_string(m_selectedStartLevel) + "  v");
             m_currentLevel = m_selectedStartLevel + (m_score / 10);
             m_isDropdownOpen = false;
             clickedItem = true;
@@ -451,7 +451,7 @@ void GameState::handleInput() {
           m_selectedStartLevel = i + 1;
           m_currentLevel = m_selectedStartLevel + (m_score / 10);
           m_dropdownMainText.setString(
-              "Start Level: " + std::to_string(m_selectedStartLevel) + "  v");
+              "Level: " + std::to_string(m_selectedStartLevel) + "  v");
           numPressed[i] = true;
         }
       } else {
@@ -617,7 +617,7 @@ void GameState::update(sf::Time dt) {
       }
 
       m_scoreText.setString(
-          "Level " + std::to_string(m_currentLevel) + " | High: " +
+          "Lvl " + std::to_string(m_currentLevel) + " | High: " +
           std::to_string(m_highScore) + " | Score: " + std::to_string(m_score) +
           " | Time: " + std::to_string(static_cast<int>(m_timeAlive)) + "s");
       m_scoreText.setPosition(

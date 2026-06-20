@@ -49,6 +49,6 @@ private:
     float m_topOffsetX = 0.f;
     float m_bottomOffsetX = 0.f;
     
-    sf::RectangleShape m_topShape;
-    sf::RectangleShape m_bottomShape;
+    sf::Color m_baseColor;
+    sf::Color m_outlineColor;
 };
